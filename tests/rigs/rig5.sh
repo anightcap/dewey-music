@@ -33,7 +33,8 @@ mk "$M/Beta Group/Second Album/b4.flac" 530 "Beta Group" "Cuatro" "Second Album"
 # artist three: already in the right place (the plan leaves it alone)
 mk "$M/Gamma/Done Album (2020)/01 - Fine.flac" 600 "Gamma" "Fine" "Done Album" 1 2020
 printf '#EXTM3U\n../Alpha Band/First Album/a2.flac\n../Beta Group/Second Album/b1.flac\n../Gamma/Done Album (2020)/01 - Fine.flac\n' > "$M/Playlists/Mix.m3u"
-ln -sfn $M /music
+# the Beets library records absolute /music paths (as in a Beets container), so /music must point at this rig
+ln -sfn $M /music 2>/dev/null || sudo -n ln -sfn $M /music 2>/dev/null || { echo "cannot create /music (needs root or passwordless sudo)"; exit 77; }
 cat > beets/config.yaml <<CFG
 directory: /music
 library: $R/beets/library.db

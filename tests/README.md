@@ -11,7 +11,7 @@ python3 tests/run_tests.py undo        # only groups whose name contains "undo"
 DEWEY_TEST_KEEP=1 python3 tests/run_tests.py   # keep the temporary rigs (path printed per group) to look around
 ```
 
-**Needs:** Linux, macOS or WSL; `python3`, `ffmpeg`, `bash`, `mutagen`, `numpy` (`pip install mutagen numpy`). The browser groups also need
+**Needs:** Linux, macOS or WSL; `python3`, `ffmpeg`, `bash`, `mutagen`, `numpy` (`pip install mutagen numpy`). The Beets groups also need the real `beet` tool (`pip install beets`) and permission to create `/music` (root or passwordless `sudo`); without them those groups are skipped, not failed. The browser groups also need
 `node`, `openssl` and Playwright with Chromium (`npm install -g playwright && playwright install chromium`, then `export NODE_PATH=$(npm root -g)`).
 
 | Group | What it proves |

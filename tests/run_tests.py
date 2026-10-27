@@ -38,6 +38,16 @@ SUITES = [
 ]
 
 
+def wait_port_free(port, secs=15):
+    import socket
+    end = time.time() + secs
+    while time.time() < end:
+        with socket.socket() as k:
+            if k.connect_ex(("127.0.0.1", port)) != 0:
+                return
+        time.sleep(0.5)
+
+
 def stop_rig(rig_dir):
     for name in ("runner.pid", "web.pid"):
         try:
@@ -45,6 +55,7 @@ def stop_rig(rig_dir):
         except Exception:
             pass
     time.sleep(0.8)
+    wait_port_free(PORT)
 
 
 def main():
@@ -65,6 +76,9 @@ def main():
         s = subprocess.run(["bash", os.path.join(HERE, "rigs", rig + ".sh"), os.path.basename(rig_dir)], env=env, capture_output=True, text=True) if rig else None
         if rig is None:
             os.makedirs(rig_dir, exist_ok=True)
+        if s is not None and s.returncode == 77 or (rig == "rig5" and shutil.which("beet") is None):
+            print("  SKIPPED  (needs the Beets command line tool and permission to create /music: %s)" % ("pip install beets; run as root or with passwordless sudo"))
+            results.append((name, True, "skipped")); continue
         if s is not None and s.returncode != 0:
             print("rig setup failed:\n" + s.stdout[-800:] + s.stderr[-800:]); results.append((name, False, "rig setup failed")); continue
         # the rig's own env.sh holds every MD_* setting the runner and console use
@@ -112,7 +126,8 @@ def main():
     if not keep:
         shutil.rmtree(tmp, ignore_errors=True)
     bad = [r for r in results if not r[1]]
-    print("\n%d of %d test groups passed" % (len(results) - len(bad), len(results)))
+    skipped = [r for r in results if r[2] == "skipped"]
+    print("\n%d of %d test groups passed%s" % (len(results) - len(bad) - len(skipped), len(results), (" (%d skipped)" % len(skipped)) if skipped else ""))
     for r in bad:
         print("  FAILED: " + r[0] + (" - " + r[2] if r[2] else ""))
     sys.exit(1 if bad or not results else 0)

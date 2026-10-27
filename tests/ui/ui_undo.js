@@ -7,7 +7,7 @@ const applyRun = fs.readdirSync(Q).filter(x => !x.startsWith('place-'))[0];
 fs.mkdirSync(Q + '/20260901-000000', { recursive: true }); fs.writeFileSync(Q + '/20260901-000000/a.flac', 'x'.repeat(5000)); const t = Date.now() / 1000 - 40 * 86400; fs.utimesSync(Q + '/20260901-000000', t, t);
 (async () => {
   const b = await chromium.launch();
-  const ctx = await b.newContext({ ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1100 } });
+  const ctx = await b.newContext({ bypassCSP: true, ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1100 } });
   const p = await ctx.newPage(); p.on('pageerror', e => console.log('PAGEERROR', e.message)); p.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text()); });
   await p.goto('https://127.0.0.1:18443/#/run'); await p.waitForSelector('.armbox');
   console.log('notice:', (await p.locator('.notice.good').first().textContent().catch(() => '(none)')).slice(0, 400));

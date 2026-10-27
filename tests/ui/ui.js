@@ -4,7 +4,7 @@ const R = process.argv[2];
 const code = () => cp.execSync(`python3 -c "import importlib.util,time;s=importlib.util.spec_from_file_location('r','${process.env.DEWEY_REPO}/runner.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(m.totp_code(open('${R}/state/totp.key').read().strip(),int(time.time()//30)))"`).toString().trim();
 (async () => {
   const b = await chromium.launch();
-  const ctx = await b.newContext({ ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1000 } });
+  const ctx = await b.newContext({ bypassCSP: true, ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1000 } });
   const p = await ctx.newPage(); p.on('pageerror', e => console.log('PAGEERROR', e.message)); p.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text()); });
   await p.goto('https://127.0.0.1:18443/#/run');
   await p.waitForSelector('.armbox');
@@ -43,7 +43,7 @@ const code = () => cp.execSync(`python3 -c "import importlib.util,time;s=importl
   await p.getByRole('button', { name: 'Disarm now' }).click(); await p.waitForSelector('.armbox.idle', { timeout: 8000 });
   console.log('after disarm:', (await p.textContent('#safety')).replace(/\s+/g, ' '));
   // mobile
-  const m = await b.newContext({ ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 390, height: 800 } });
+  const m = await b.newContext({ bypassCSP: true, ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 390, height: 800 } });
   const mp = await m.newPage(); await mp.goto('https://127.0.0.1:18443/#/run'); await mp.waitForSelector('.armbox'); await mp.screenshot({ path: R + '/s_idle_m.png' });
   await b.close();
 })();
