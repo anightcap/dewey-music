@@ -4694,6 +4694,7 @@ def cmd_place(a):
 def main():
     env = os.environ.get
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--version", action="version", version="Dewey " + VERSION)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     def common(p):

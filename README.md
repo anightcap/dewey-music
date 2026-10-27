@@ -179,3 +179,15 @@ Keep these together in one folder on the PC: `dewey.ps1`, `dewey.py`, `dewey.sh`
 - A real run refused with "REFUSED": the library, a plan or a database changed after the dry run. Nothing was changed; do a fresh dry run.
 - The console looks out of date after an update: it needs `.\dewey.ps1 web` and a hard refresh.
 - Run logs: the History on the Run page, the Logs page, or `out/logs/` on the NAS. `runner logs` lists every arming, wrong code and real run.
+
+## About this project
+
+**Built with AI.** Built by the author with extensive help from Claude; all code is tested, reviewed and run by the author.
+
+**Support.** Maintained as a hobby. At most one release every two weeks; fixes arrive in releases, not as individual patches. Issues are welcome, but replies and fixes may be slow.
+
+**Contributing.** Bug reports with a dry-run log are the most useful thing you can send; see [`CONTRIBUTING.md`](CONTRIBUTING.md). Please report security problems privately, as described in [`SECURITY.md`](SECURITY.md). Changes are listed in [`CHANGELOG.md`](CHANGELOG.md).
+
+**No warranty.** Dewey moves your files. It is built so that nothing is changed without a dry run you have read and almost nothing is deleted, but back up your library first (see "Things to know before you rely on it").
+
+**License.** [MIT](LICENSE).
