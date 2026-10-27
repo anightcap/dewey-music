@@ -1,0 +1,69 @@
+# Dewey rules  --  edit this file, then re-run "scan" so the plan picks it up.
+# One rule per line:  key: value        Lines starting with # are ignored.
+# Artist/title matching ignores case, accents, punctuation, "The", "feat." and
+# version labels, so "Midnight Train (Radio Edit)" and "Midnight Train" count as the same song.
+# This is an example file: copy it to rules.txt (dewey.ps1 does that for you on the first run) and edit your copy.
+
+# ---------------------------------------------------------------------------
+# prefer-edit: for ONE song, which version survives when several edits exist.
+#   Artist | Title = radio edit | extended | single | edit | video | plain
+# ---------------------------------------------------------------------------
+# prefer-edit: The Example Band | Midnight Train = radio edit
+
+# ---------------------------------------------------------------------------
+# keep-both: never touch this song; every copy stays (shown as EXEMPT in the report)
+#   Artist | Title
+# ---------------------------------------------------------------------------
+# keep-both: The Example Band | Night Shift
+
+# keep-both-id: same idea using the 8-character group id shown in report.html
+# keep-both-id: 7cc8f1f1
+
+# ---------------------------------------------------------------------------
+# keep-file: this exact file always wins its group (path relative to the Music folder)
+# ---------------------------------------------------------------------------
+# keep-file: The Example Band/Night Shift (1997)/01 - Midnight Train.flac
+
+# ---------------------------------------------------------------------------
+# protect-artist: leave an artist's duplicates alone entirely
+# protect-path:   files under this folder may be flagged but are never removed (they show as BLOCKED)
+# skip-path:      don't even scan this folder
+# ---------------------------------------------------------------------------
+# protect-artist: Various Artists
+# protect-path: Soundtracks
+# skip-path: Audiobooks
+
+# ---------------------------------------------------------------------------
+# prefer-order: global default when a song has several edits and no prefer-edit rule.
+#   "plain" = the normal album version. The first entry listed wins.
+# ---------------------------------------------------------------------------
+# prefer-order: plain, radio edit, single, edit, video, extended
+
+# tolerance:      how many seconds apart two copies may be and still count as the same recording,
+#                 safely enough to remove one automatically (default 3)
+# wide-tolerance: copies further apart than that but within this many seconds (default 6) are shown as
+#                 WIDE-GAP groups. Usually a remaster or a longer fade-out. They are NOT removed unless you
+#                 approve them:  apply --group <id>   (or add  --kinds exact,variant,wide  for all of them).
+tolerance: 3
+wide-tolerance: 6
+
+# ---------------------------------------------------------------------------
+# clean-explicit: what to do when one copy is labeled (Explicit)/(Clean) and the other copy differs.
+#   keep-both (default): leave both copies alone, so you can build clean and explicit playlists.
+#   dedupe             : treat them as ordinary duplicates.
+# dedupe-labels: Artist | Title    ...or dedupe the label differences for just this one song.
+# ---------------------------------------------------------------------------
+clean-explicit: keep-both
+# dedupe-labels: Sample Artist | Some Song
+
+# ---------------------------------------------------------------------------
+# Reorg (reorg / reorg-apply): the Artist/Album (YYYY)/NN - Title.ext layout. Edit, then run "reorg" again.
+#   reorg-skip: <folder>              leave everything under this folder (relative to Music) where it is
+#   reorg-various: <album>            this album belongs under "Various Artists" (use for compilations that aren't flagged)
+#   reorg-unknown-album: Singles      songs with artist + title but NO album tag go to  Artist/Singles/  (default: skipped and listed)
+#   reorg-artist: Alias | Canonical   always use this folder spelling for an artist
+# ---------------------------------------------------------------------------
+# reorg-skip: Audiobooks
+# reorg-various: Summer Hits Compilation 2001
+# reorg-unknown-album: Singles
+# reorg-artist: Ex-Ample | Example

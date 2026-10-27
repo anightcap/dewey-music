@@ -1,0 +1,28 @@
+# Optional: lets Dewey see your Beets library (and, for "Repoint Beets after a reorg", edit it in the runner).
+# Enable it by adding these lines to .env:
+#     DEWEY_BEETS=/path/to/the/folder/that/holds/library.db
+#     COMPOSE_FILE=docker-compose.yml:compose.beets.yml        (on Windows use ; instead of :)
+# or add  -f docker-compose.yml -f compose.beets.yml  to every docker compose command.
+
+services:
+  dewey:
+    environment:
+      MD_BEETSDB: /beets/library.db
+    volumes:
+      - ${DEWEY_BEETS:?set DEWEY_BEETS in .env}:/beets:ro
+  dewey-write:
+    environment:
+      MD_BEETSDB: /beets/library.db
+    volumes:
+      - ${DEWEY_BEETS:?set DEWEY_BEETS in .env}:/beets:rw
+  web:
+    environment:
+      MD_BEETSDB: /beets/library.db
+    volumes:
+      - ${DEWEY_BEETS:?set DEWEY_BEETS in .env}:/beets:ro
+  runner:
+    environment:
+      MD_BEETSDB: /beets/library.db
+    volumes:
+      # writable: only "Repoint Beets" uses it, and it backs library.db up next to itself first (SQLite needs the folder writable)
+      - ${DEWEY_BEETS:?set DEWEY_BEETS in .env}:/beets:rw

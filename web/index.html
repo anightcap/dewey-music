@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dewey</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2313161d'/%3E%3Cpath d='M12 9v11.2a3.2 3.2 0 1 1-2-3V9l11-2v10.2a3.2 3.2 0 1 1-2-3V9.6z' fill='%234ade80'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <button class="menu-close" id="menuClose" aria-label="close menu">&times;</button>
+      <div class="brand">Dewey<span class="brand-dot">.</span></div>
+      <div class="brand-sub" id="brandSub">web console</div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-foot">
+      <div id="jobPill" class="job-pill" hidden></div>
+      <div id="safety" class="safety"></div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+  <main class="main">
+    <button class="menu-btn" id="menuBtn" aria-label="menu">&#9776;</button>
+    <div id="page"></div>
+  </main>
+</div>
+<div class="player" id="player" hidden>
+  <div class="player-info"><span id="playerLabel"></span></div>
+  <audio id="audio" controls preload="none"></audio>
+  <button class="btn small" id="playerClose">close</button>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

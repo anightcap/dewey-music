@@ -1,0 +1,23 @@
+# --- your own settings and secrets: never commit these ---
+dewey.config.psd1
+rules.txt
+web.env
+.env
+navidrome.cred
+sync-music.ignore.txt
+private-denylist.txt
+
+# --- run output and local data ---
+out/
+data/
+*.zip
+
+# --- Python / editors ---
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+
+# --- private project history (kept on the author's machine) ---
+BUILD-DIARY.md
+StackOverview*.html

@@ -1,0 +1,21 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  leak-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No personal details or secrets in the tree
+        run: python3 tools/check_public.py
+      - name: Python files compile
+        run: python3 -m py_compile dewey.py runner.py webui.py tools/check_public.py
+      - name: Shell script syntax
+        run: bash -n dewey.sh
+      - name: Compose file is valid
+        run: |
+          printf 'DEWEY_MEDIA=/tmp/media\nDEWEY_NAVIDROME_DATA=/tmp/nd\nMD_WEB_PASS=ci-only-password\n' > /tmp/ci.env
+          docker compose --env-file /tmp/ci.env --profile runner --profile tools --profile tools-write config -q

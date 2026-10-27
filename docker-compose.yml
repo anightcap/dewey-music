@@ -1,0 +1,192 @@
+# Dewey on Docker Compose.  Setup: copy .env.example to .env, fill it in, then see README "Install with Docker Compose".
+#
+#   docker compose up -d                              the web console (READ-ONLY: it can look at the library, never change it)
+#   docker compose --profile tools run --rm dewey scan        command line, read-only (also any dry run: apply, reorg-apply, place, ...)
+#   docker compose --profile runner up -d             also start the runner: the only service that can change the library,
+#                                                     and it does nothing until you arm it with a code from an authenticator app
+#   docker compose --profile tools-write run --rm dewey-write apply --execute   command line, library writable (a real run)
+#
+# Before the first start create the data folders:  mkdir -p data/out data/config   (Synology's Docker will not create them)
+#
+# Who can write to your music:
+#   dewey (profile "tools")        nothing         library mounted read-only
+#   web                            nothing         library mounted read-only
+#   runner (profile "runner")      Music, _dedupe-quarantine, _incoming, _reorg and (optionally) the Beets folder
+#   dewey-write (profile "tools-write")   the same folders as the runner, for command-line real runs
+# Nothing here is ever given the Docker socket, and every long-running service drops all Linux capabilities.
+
+name: dewey
+
+x-dewey: &dewey
+  image: dewey:local
+  build:
+    context: .
+    args:
+      TZ: ${DEWEY_TZ:-UTC}
+  # run as the owner of your music files (see DEWEY_UID / DEWEY_GID in .env): files Dewey creates then belong to you, not root
+  user: "${DEWEY_UID:-1000}:${DEWEY_GID:-1000}"
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-env: &env
+  PYTHONDONTWRITEBYTECODE: "1"
+  TZ: ${DEWEY_TZ:-UTC}
+  MD_INSTALL: compose
+  MD_RULES: /config/rules.txt
+  MD_CRED: /config/navidrome.cred
+  MD_ND_CRED: /config/navidrome.cred
+
+services:
+  # One-shot helper: makes the data folders, hands them (and the shared volumes) to DEWEY_UID:DEWEY_GID, then exits.
+  # It never touches your library.
+  init:
+    <<: *dewey
+    user: "0:0"
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    restart: "no"
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mkdir -p /out /config
+        [ -e /config/rules.txt ] || { touch /config/rules.txt && chown ${DEWEY_UID:-1000}:${DEWEY_GID:-1000} /config/rules.txt; }
+        [ "$$(stat -c %u /config)" != "0" ] || chown ${DEWEY_UID:-1000}:${DEWEY_GID:-1000} /config
+        chown ${DEWEY_UID:-1000}:${DEWEY_GID:-1000} /out /queue /state
+    volumes:
+      - ${DEWEY_DATA:-./data}/out:/out
+      - ${DEWEY_DATA:-./data}/config:/config
+      - dewey-queue:/queue
+      - dewey-runner-state:/state
+
+  # One-shot helper for the services that may write: creates the three working folders next to Music (if missing)
+  # so Docker does not create them as root. Only these three names are touched; nothing inside your library is changed.
+  init-write:
+    <<: *dewey
+    user: "0:0"
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    restart: "no"
+    profiles: ["runner", "tools-write"]
+    entrypoint:
+      - sh
+      - -c
+      - |
+        for d in _dedupe-quarantine _incoming _reorg; do
+          if [ ! -d "/media/$$d" ]; then mkdir "/media/$$d" && chown ${DEWEY_UID:-1000}:${DEWEY_GID:-1000} "/media/$$d" || echo "could not create $$d: create it by hand next to Music"; fi
+        done
+    volumes:
+      - ${DEWEY_MEDIA:?set DEWEY_MEDIA in .env}:/media
+
+  # Command line, READ-ONLY.   docker compose --profile tools run --rm dewey <command> [options]
+  dewey:
+    <<: *dewey
+    profiles: ["tools"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    environment:
+      <<: *env
+    stdin_open: true
+    tty: true
+    volumes:
+      - ${DEWEY_MEDIA:?set DEWEY_MEDIA in .env}:/media:ro
+      - ${DEWEY_NAVIDROME_DATA:?set DEWEY_NAVIDROME_DATA in .env}:/navidrome-data:ro
+      - ${DEWEY_DATA:-./data}/out:/out
+      - ${DEWEY_DATA:-./data}/config:/config:ro
+
+  # Command line, library WRITABLE.   docker compose --profile tools-write run --rm dewey-write <command> --execute
+  dewey-write:
+    <<: *dewey
+    profiles: ["tools-write"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      init-write:
+        condition: service_completed_successfully
+    environment:
+      <<: *env
+    stdin_open: true
+    tty: true
+    volumes:
+      - ${DEWEY_MEDIA:?set DEWEY_MEDIA in .env}:/media:ro
+      - ${DEWEY_MEDIA}/Music:/media/Music
+      - ${DEWEY_MEDIA}/_dedupe-quarantine:/media/_dedupe-quarantine
+      - ${DEWEY_MEDIA}/_incoming:/media/_incoming
+      - ${DEWEY_MEDIA}/_reorg:/media/_reorg
+      - ${DEWEY_NAVIDROME_DATA:?set DEWEY_NAVIDROME_DATA in .env}:/navidrome-data:ro
+      - ${DEWEY_DATA:-./data}/out:/out
+      - ${DEWEY_DATA:-./data}/config:/config:ro
+
+  # The web console. Read-only library. Real runs are only ever REQUESTED here; the runner decides.
+  web:
+    <<: *dewey
+    restart: unless-stopped
+    entrypoint: ["python", "-u", "/app/webui.py"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    ports:
+      # 127.0.0.1 = this computer only. Put HTTPS in front of it (a reverse proxy, Tailscale Serve, ...) to reach it from elsewhere.
+      - "${DEWEY_WEB_BIND:-127.0.0.1}:${DEWEY_WEB_PORT:-8099}:8099"
+    environment:
+      <<: *env
+      MD_WEB_USER: ${MD_WEB_USER:-admin}
+      MD_WEB_PASS: ${MD_WEB_PASS:?set MD_WEB_PASS in .env (a long random password)}
+      MD_WEB_USER_2: ${MD_WEB_USER_2:-}
+      MD_WEB_PASS_2: ${MD_WEB_PASS_2:-}
+      MD_WEB_USER_3: ${MD_WEB_USER_3:-}
+      MD_WEB_PASS_3: ${MD_WEB_PASS_3:-}
+      MD_WEB_BIND: ${DEWEY_WEB_BIND:-127.0.0.1}
+      MD_WEB_HOSTS: ${MD_WEB_HOSTS:-}
+      MD_WIDGET_TOKEN: ${MD_WIDGET_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8099), 3).close()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ${DEWEY_MEDIA:?set DEWEY_MEDIA in .env}:/media:ro
+      - ${DEWEY_NAVIDROME_DATA:?set DEWEY_NAVIDROME_DATA in .env}:/navidrome-data:ro
+      - ${DEWEY_DATA:-./data}/out:/out
+      - ${DEWEY_DATA:-./data}/config:/config:ro
+      - dewey-queue:/queue
+
+  # The runner: the only long-running service that can change the library. No port, no Docker socket.
+  # It acts only on requests the console leaves in the shared queue, and only while armed with an authenticator-app code.
+  # First time:  docker compose --profile runner run --rm runner secret      (shows the secret to add to your authenticator app)
+  runner:
+    <<: *dewey
+    profiles: ["runner"]
+    restart: unless-stopped
+    entrypoint: ["python", "-u", "/app/runner.py"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      init-write:
+        condition: service_completed_successfully
+    environment:
+      <<: *env
+      MD_ARM_MINUTES: ${MD_ARM_MINUTES:-15}
+      MD_LABEL: ${DEWEY_LABEL:-console}
+    volumes:
+      - ${DEWEY_MEDIA:?set DEWEY_MEDIA in .env}:/media:ro
+      - ${DEWEY_MEDIA}/Music:/media/Music
+      - ${DEWEY_MEDIA}/_dedupe-quarantine:/media/_dedupe-quarantine
+      - ${DEWEY_MEDIA}/_incoming:/media/_incoming
+      - ${DEWEY_MEDIA}/_reorg:/media/_reorg
+      - ${DEWEY_NAVIDROME_DATA:?set DEWEY_NAVIDROME_DATA in .env}:/navidrome-data:ro
+      - ${DEWEY_DATA:-./data}/out:/out
+      - ${DEWEY_DATA:-./data}/config:/config:ro
+      - dewey-queue:/queue
+      - dewey-runner-state:/state
+
+volumes:
+  dewey-queue:
+  dewey-runner-state:

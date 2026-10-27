@@ -1,0 +1,14 @@
+# keep secrets and run output out of the build context
+out
+data
+web.env
+.env
+navidrome.cred
+rules.txt
+sync-music.ignore.txt
+dewey.config.psd1
+private-denylist.txt
+.git
+.github
+*.zip
+__pycache__
