@@ -10,6 +10,8 @@ private-denylist.txt
 # --- run output and local data ---
 out/
 data/
+demo/media/
+demo/navidrome-data/
 *.zip
 
 # --- Python / editors ---

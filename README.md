@@ -8,7 +8,7 @@ Duplicates are *moved* to a quarantine folder outside the library, every move is
 
 *Named after the Dewey Decimal system: every item has one right place on the shelf.*
 
-Version: tool 1.12.8, web console 1.10.1.
+Version: tool 1.12.8, web console 1.10.3.
 
 ## What it does
 
@@ -23,6 +23,19 @@ Version: tool 1.12.8, web console 1.10.1.
 | `undo` | Puts a quarantine, place or layout run back | moves files |
 | `purge` | Permanently deletes quarantine runs older than N days | **deletes** |
 | `tagaudit`, `nd-missing`, `compare` | Read-only: missing tags, art and lyrics; Navidrome's "Missing Files" explained; are these two files the same audio? | no |
+
+## Try it first, on a demo library
+
+`python3 demo/make_demo.py` builds a small made-up library (generated tones, invented artists, nothing of yours) with duplicates, a playlist
+that blocks one of them, mis-named files and a landing folder of new music, so you can run every dry run and look at the web console before
+pointing Dewey at real music. Step by step in [`demo/README.md`](demo/README.md).
+
+![The overview page of the web console](docs/screenshots/overview.png)
+
+| | |
+|---|---|
+| ![Duplicate groups](docs/screenshots/duplicates.png) | ![The folder layout plan](docs/screenshots/layout.png) |
+| ![New music waiting to be filed](docs/screenshots/new-music.png) | ![The Run page](docs/screenshots/run.png) |
 
 ## How it fits together
 
@@ -116,6 +129,11 @@ What the runner checks before it touches anything: it is armed; the command and 
 - **Interruptions are safe.** Every move is a whole-file rename on the same volume, and each run keeps its manifest current as it goes, so `undo` restores whatever had moved. `place` can simply be run again.
 - **Back up first.** Dewey is careful, but it moves a lot of files. Keep a backup of the library and of Navidrome's and Beets' databases (Dewey also backs them up before editing them).
 - **Not covered:** editing tags, fetching art or lyrics (it only audits them), copying music from a PC (that is `sync-music`, or any file manager into `_incoming`).
+
+## Tests
+
+`python3 tests/run_tests.py` runs the whole suite (the runner's safety checks, every real run, undo and purge, the demo library, and the web pages
+in a real browser) against throw-away rigs, with no library, Navidrome or Docker needed. GitHub runs it on every push. Details in [`tests/README.md`](tests/README.md).
 
 ## Setting it up
 

@@ -116,7 +116,7 @@ def read_version():
 
 
 VERSION = read_version()
-WEB_VERSION = "1.10.1 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
+WEB_VERSION = "1.10.3 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -331,6 +331,8 @@ def api_settings():
 # ---------------------------------------------------------------------------------------------------------------------
 def group_status(g):
     roles = [m["role"] for m in g["members"]]
+    if g.get("kind") == "wide" and ("remove" in roles or "blocked" in roles):
+        return "review"                      # a wide-gap group is held until you approve it by name, so it is not "removable" yet
     if "remove" in roles:
         return "removable"
     if "blocked" in roles:
@@ -371,7 +373,8 @@ def api_plan_info():
         kinds[g["kind"]] = kinds.get(g["kind"], 0) + 1
         s = group_status(g)
         status[s] = status.get(s, 0) + 1
-        reclaim += sum(m.get("size") or 0 for m in g["members"] if m["role"] == "remove")
+        if g.get("kind") != "wide":
+            reclaim += sum(m.get("size") or 0 for m in g["members"] if m["role"] == "remove")
     # has the library changed since this scan? (any real apply / reorg-apply / place / undo run after the plan was written)
     changed = []
     pm = os.stat(out("plan.json")).st_mtime
@@ -388,7 +391,7 @@ def api_plan_info():
     # the files are the truth: a planned removal whose file is no longer in the library has already happened
     gone, checked = 0, 0
     for g in groups:
-        rem = [m for m in g["members"] if m["role"] == "remove"]
+        rem = [m for m in g["members"] if m["role"] == "remove"] if g.get("kind") != "wide" else []
         if rem and checked < 6000:
             checked += len(rem)
             if all(not os.path.exists(os.path.join(MUSIC, m["path"])) for m in rem):

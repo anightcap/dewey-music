@@ -12,10 +12,28 @@ jobs:
       - name: No personal details or secrets in the tree
         run: python3 tools/check_public.py
       - name: Python files compile
-        run: python3 -m py_compile dewey.py runner.py webui.py tools/check_public.py
+        run: python3 -m py_compile dewey.py runner.py webui.py tools/check_public.py tests/run_tests.py demo/make_demo.py
       - name: Shell script syntax
         run: bash -n dewey.sh
       - name: Compose file is valid
         run: |
           printf 'DEWEY_MEDIA=/tmp/media\nDEWEY_NAVIDROME_DATA=/tmp/nd\nMD_WEB_PASS=ci-only-password\n' > /tmp/ci.env
           docker compose --env-file /tmp/ci.env --profile runner --profile tools --profile tools-write config -q
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install what the tests need
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          python3 -m pip install mutagen numpy
+          npm install -g playwright@1.49.1
+          playwright install --with-deps chromium
+      - name: Run all tests (API, engine, demo library and browser)
+        run: |
+          export NODE_PATH="$(npm root -g)"
+          python3 tests/run_tests.py

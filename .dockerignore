@@ -12,3 +12,6 @@ private-denylist.txt
 .github
 *.zip
 __pycache__
+tests/
+demo/
+docs/

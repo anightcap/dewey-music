@@ -1,0 +1,37 @@
+const { chromium } = require('playwright');
+const cp = require('child_process');
+const R = process.argv[2];
+const code = () => cp.execSync(`python3 -c "import importlib.util,time;s=importlib.util.spec_from_file_location('r','${process.env.DEWEY_REPO}/runner.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(m.totp_code(open('${R}/state/totp.key').read().strip(),int(time.time()//30)))"`).toString().trim();
+(async () => {
+  const b = await chromium.launch();
+  const ctx = await b.newContext({ ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1100 } });
+  const p = await ctx.newPage(); p.on('pageerror', e => console.log('PAGEERROR', e.message)); p.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text()); });
+  await p.goto('https://127.0.0.1:18443/#/run'); await p.waitForSelector('.armbox');
+  console.log('notice:', (await p.locator('.notice.good').first().textContent().catch(() => '(none on this page)')).slice(0, 300));
+  await p.fill('.armcode', code()); await p.click('.armbox .btn.primary'); await p.waitForSelector('.armbox.on', { timeout: 8000 });
+  const card = p.locator('#cmd-reorg-apply');
+  await card.scrollIntoViewIfNeeded();
+  console.log('card desc:', (await card.locator('.d').first().textContent()).slice(0, 200));
+  console.log('real block before a dry run:', (await card.locator('.real').textContent()).slice(0, 120), '| disabled:', await card.locator('.real .btn.danger').isDisabled());
+  // the options: batch by artist
+  await card.getByRole('button', { name: 'Options' }).click();
+  await card.getByLabel('Only artist folders containing').fill('Alpha');
+  await card.getByRole('button', { name: 'Run dry run' }).click();
+  await p.waitForSelector('.console-head', { timeout: 8000 });
+  await p.waitForFunction(() => document.querySelector('.console .after') && !document.querySelector('.console .after').hidden, null, { timeout: 30000 });
+  await p.goto('https://127.0.0.1:18443/#/run?cmd=reorg-apply'); await p.reload(); await p.waitForSelector('#cmd-reorg-apply .real');
+  const real = p.locator('#cmd-reorg-apply .real');
+  console.log('real text:', (await real.textContent()).slice(0, 900));
+  console.log('placeholder:', await real.locator('input[type=text]').getAttribute('placeholder'), '| password box present:', await real.locator('input[type=password]').count());
+  await p.locator('#cmd-reorg-apply').scrollIntoViewIfNeeded();
+  await p.screenshot({ path: R + '/s_reorg_ready.png' });
+  await real.locator('input[type=text]').fill('MOVE'); await real.locator('.btn.danger').click();
+  await p.waitForTimeout(400); console.log('toast wrong phrase:', await p.textContent('#toast'));
+  await real.locator('input[type=text]').fill('MOVE 3'); await real.locator('.btn.danger').click();
+  await p.waitForSelector('.console-head', { timeout: 8000 });
+  await p.waitForFunction(() => document.querySelector('.console .after') && !document.querySelector('.console .after').hidden, null, { timeout: 30000 });
+  console.log('console:', (await p.textContent('.console pre')).slice(0, 700).replace(/\n/g, ' | '));
+  console.log('head:', (await p.textContent('.console-head')).slice(0, 160));
+  await p.screenshot({ path: R + '/s_reorg_ran.png' });
+  await b.close();
+})();
