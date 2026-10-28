@@ -37,6 +37,17 @@ rc, t = tool("reorg")
 check("reorg plans 9 moves and skips the file with no tags", rc == 0 and "to move 9" in t and "skipped 1" in t, t[-600:])
 rc, t = tool("tagaudit")
 check("tagaudit reports one file missing core tags", rc == 0 and "files missing title, artist or album: 1" in t, t[-600:])
+# the dashboard endpoint (Home Assistant / Homepage): counts the demo library is known to hold
+wenv = dict(env, MD_STATE=R + "/wstate", MD_QUEUE=R + "/wqueue", MD_WEBROOT=_os.path.join(REPO, "web"), MD_APP=_os.path.join(REPO, "dewey.py"))
+_os.makedirs(R + "/wstate", exist_ok=True); _os.makedirs(R + "/wqueue", exist_ok=True)
+q = subprocess.run([sys.executable, "-c", "import json,sys; sys.path.insert(0, sys.argv[1]); import webui; print('W=' + json.dumps(webui.api_widget()))", REPO],
+                   env=wenv, capture_output=True, text=True)
+try:
+    w = json.loads([l for l in q.stdout.splitlines() if l.startswith("W=")][0][2:])
+except Exception:
+    w = {}
+check("widget: artists and albums as the scan counts them, 13 FLAC and 1 MP3", (w.get("artists"), w.get("albums"), w.get("flac_files"), w.get("mp3_files"), w.get("files")) == (5, 5, 13, 1, 14), (w, q.stderr[-400:]))
+check("widget: last_scan is an ISO time with an offset", bool(w.get("last_scan")) and ("+" in w["last_scan"][19:] or "-" in w["last_scan"][19:] or w["last_scan"].endswith("Z")), w)
 files = sorted(_os.path.join(d, f) for d, _s, fs in _os.walk(M) for f in fs)
 check("nothing in the demo library was changed by any dry run", len(files) == 17 and _os.path.exists(M + "/Misc/stone-bridge-copy.flac") and not _os.listdir(Q), files)
 shutil.rmtree(R + "/media", ignore_errors=True)

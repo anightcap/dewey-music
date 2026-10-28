@@ -2,7 +2,7 @@
 
 Versions are the tool's (`dewey.py`) and the web console's (`webui.py`).
 
-## 1.12.8 (tool) / 1.10.3 (console), first public release
+## 1.12.8 (tool) / 1.10.4 (console), first public release
 
 Dewey had been in daily use on the author's own NAS before this release; this is the first version published as a repository.
 
@@ -11,6 +11,7 @@ Dewey had been in daily use on the author's own NAS before this release; this is
   opt-in runner as the only writer, non-root, all capabilities dropped, no Docker socket. Tested on a real Docker host.
 - `dewey.config.psd1` for the PC launcher (NAS address, user, folders, time zone, authenticator label), so no personal value is in the scripts.
 - `tools/check_public.py`, a leak check for the repository (private addresses, secrets, personal paths, your own denylist), usable as a pre-commit hook and run in CI.
+- `GET /api/widget` also returns `artists`, `albums` (from the library scan), `flac_files`, `mp3_files` and `last_scan` (ISO time with offset), so a dashboard such as Home Assistant can show the library at a glance.
 - The test suite (`tests/`, one command, no real library needed) and a generated demo library with screenshots (`demo/`).
 
 **Fixed**

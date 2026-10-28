@@ -8,7 +8,7 @@ Duplicates are *moved* to a quarantine folder outside the library, every move is
 
 *Named after the Dewey Decimal system: every item has one right place on the shelf.*
 
-Version: tool 1.12.8, web console 1.10.3.
+Version: tool 1.12.8, web console 1.10.4.
 
 ## What it does
 

@@ -116,7 +116,7 @@ def read_version():
 
 
 VERSION = read_version()
-WEB_VERSION = "1.10.3 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
+WEB_VERSION = "1.10.4 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -970,7 +970,7 @@ def api_security(req):
     else:
         add("Navidrome password", "ok", "not stored. The Fix playlists card asks for it each run and only accepts it from an https page.")
     if WIDGET_TOKEN:
-        add("Dashboard widget", "info", "a token (MD_WIDGET_TOKEN) lets a dashboard such as Homepage read /api/widget: a dozen counts, no names or paths, nothing else. "
+        add("Dashboard widget", "info", "a token (MD_WIDGET_TOKEN) lets a dashboard such as Homepage read /api/widget: about twenty counts and one timestamp, no names or paths, nothing else. "
             "It works from any network the container is on, so keep that network private to the NAS (see MD_WEB_NETWORK).")
     else:
         add("Dashboard widget", "ok", "off: no MD_WIDGET_TOKEN is set, so no token can read anything")
@@ -1204,8 +1204,18 @@ def api_widget():
         s = api_status()
         inv, p, ta, ro_, q = s.get("inventory") or {}, s.get("plan") or {}, s.get("tagaudit") or {}, s.get("reorg") or {}, s.get("quarantine") or {}
         cur = s.get("job")
+        ext = inv.get("by_ext") or {}
+        try:
+            scan_ts = os.stat(out("inventory.json")).st_mtime
+        except OSError:
+            scan_ts = None
         v = {
             "files": inv.get("files"),
+            "artists": inv.get("artists"),
+            "albums": inv.get("albums"),
+            "flac_files": ext.get(".flac") if inv else None,
+            "mp3_files": ext.get(".mp3") if inv else None,
+            "last_scan": dt.datetime.fromtimestamp(scan_ts).astimezone().isoformat(timespec="seconds") if scan_ts else None,
             "bytes": inv.get("bytes"),
             "duplicate_groups_open": p.get("removable_open") if p.get("exists", True) and p else None,
             "space_to_free_bytes": p.get("removable_bytes") if p else None,
