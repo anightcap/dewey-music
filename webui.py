@@ -103,7 +103,7 @@ ART_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 # files in out/ that may be opened or downloaded from the browser
 OUT_FILES = ("report.html", "reorg-report.html", "dupes.csv", "plan.json", "inventory.json", "unmatched.csv", "filehealth.csv",
              "reorg-plan.csv", "reorg-plan.json", "reorg-moves.tsv", "tagaudit.csv", "tagaudit-albums.csv", "place-plan.csv",
-             "incoming-map.tsv", "nd-missing.csv", "beets-remap.csv", "redirects.tsv", "scan.log")
+             "incoming-map.tsv", "nd-missing.csv", "beets-remap.csv", "redirects.tsv", "scan.log", "suggested-rules.txt")
 
 
 def read_version():
@@ -116,7 +116,7 @@ def read_version():
 
 
 VERSION = read_version()
-WEB_VERSION = "1.10.4 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
+WEB_VERSION = "1.11.0 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -446,6 +446,18 @@ def api_groups(q):
         rem = [m for m in by_id[r["id"]]["members"] if m["role"] == "remove"]
         r["gone"] = bool(rem) and all(not os.path.exists(os.path.join(MUSIC, m["path"])) for m in rem)
     return res
+
+
+def api_suggestions():
+    """rules.txt lines the last scan suggests for the groups waiting for a decision (read-only; written by the scan)"""
+    sg = load_json(out("suggestions.json")) if os.path.isfile(out("suggestions.json")) else None
+    if sg is None:
+        return {"exists": False, "groups": []}
+    try:
+        stale = os.stat(RULES).st_mtime > os.stat(out("suggestions.json")).st_mtime + 1
+    except OSError:
+        stale = False
+    return {"exists": True, "generated": sg.get("generated"), "version": sg.get("version"), "groups": sg.get("groups", []), "rules_changed": stale}
 
 
 def api_group(gid):
@@ -2160,6 +2172,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, runner_info())
         if p == "plan":
             return self._send(200, api_plan_info())
+        if p == "suggestions":
+            return self._send(200, api_suggestions())
         if p == "groups":
             return self._send(200, api_groups(q))
         if p.startswith("groups/"):
@@ -2285,7 +2299,7 @@ class Handler(BaseHTTPRequestHandler):
         if not os.path.isfile(fp):
             return self._err(404, "not found (run the command that writes it first)")
         ctype = {".html": "text/html; charset=utf-8", ".csv": "text/csv; charset=utf-8", ".json": "application/json", ".tsv": "text/plain; charset=utf-8",
-                 ".log": "text/plain; charset=utf-8"}.get(os.path.splitext(name)[1], "application/octet-stream")
+                 ".log": "text/plain; charset=utf-8", ".txt": "text/plain; charset=utf-8"}.get(os.path.splitext(name)[1], "application/octet-stream")
         with open(fp, "rb") as fh:
             data = fh.read()
         extra = {} if name.endswith(".html") else {"Content-Disposition": 'attachment; filename="%s"' % name} if self.path.endswith("?dl=1") else {}

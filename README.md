@@ -8,7 +8,7 @@ Duplicates are *moved* to a quarantine folder outside the library, every move is
 
 *Named after the Dewey Decimal system: every item has one right place on the shelf.*
 
-Version: tool 1.12.8, web console 1.10.4.
+Version: tool 1.13.0, web console 1.11.0.
 
 ## What it does
 
@@ -63,7 +63,7 @@ pointing Dewey at real music. Step by step in [`demo/README.md`](demo/README.md)
 Every real run follows the same shape: **dry run, read it, run for real, check.** Run counts are confirmed by typing them; each dry run can authorise one real run, and only within 6 hours.
 
 **1. Clean up duplicates**
-1. `scan`, then read the report (or the Duplicates page). Edit `rules.txt` for songs you want treated differently, and scan again.
+1. `scan`, then read the report (or the Duplicates page). For songs you want treated differently, copy the lines you need from `suggested-rules.txt` (or tick them in the Duplicates page's **Suggested rules** panel) into `rules.txt`, and scan again.
 2. `playlistfix` (dry run, then real): clears every file that was BLOCKED because a Navidrome playlist, star or rating pointed at it.
 3. `scan` again, then `apply` (dry run, then real). Start with `--exact-only` or one artist.
 4. Rescan Navidrome. Keep the quarantine for a few weeks, then `purge`.

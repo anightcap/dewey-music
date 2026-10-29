@@ -162,3 +162,14 @@ pre.raw { font-family: var(--mono); font-size: 12px; background: #090b0f; border
 .real { margin-top: 6px; padding-top: 10px; border-top: 1px dashed rgba(248,113,113,.45); display: flex; flex-direction: column; gap: 8px; }
 .real .rh { display: flex; gap: 8px; align-items: center; color: var(--red); }
 .real .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+.sug-panel { margin: 10px 0 14px; }
+.sug-panel .notice { margin-top: 8px; }
+.sug, .sug-panel > div { margin-top: 8px; }
+.sug { border: 1px solid var(--border-bright); background: var(--surface); border-radius: 8px; padding: 10px 14px; margin: 6px 14px 14px; }
+.sug-row { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; border-top: 1px solid var(--border-bright); padding: 8px 0; }
+.sug-opt { flex: 1; min-width: 0; }
+.sug-label { color: var(--text-bright); font-weight: 500; overflow-wrap: anywhere; }
+.sug-lines { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sug-group { border-top: 1px solid var(--border-bright); padding: 8px 0; }
+.sug-pick { display: block; padding: 2px 0; overflow-wrap: anywhere; cursor: pointer; }

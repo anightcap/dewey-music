@@ -79,7 +79,7 @@ try:
 except ImportError:  # pragma: no cover
     mutagen = None
 
-VERSION = "1.12.8"
+VERSION = "1.13.0"
 CACHE_RV = 2   # bump when read_one() output changes meaning
 
 AUDIO_EXT = {".flac", ".mp3", ".m4a", ".mp4", ".ogg", ".oga", ".opus", ".wav",
@@ -1628,6 +1628,93 @@ def health_rows(tracks, leftovers):
     return rows
 
 
+def _why_held(g, review):
+    """a short plain-words reason a group needs a decision (taken from what the scan already wrote on the cards)"""
+    if g["kind"] == "review":
+        return g["note"]
+    bits = []
+    for m in review:
+        for seg in m["reason"].split(" | "):
+            seg = seg.strip()
+            if seg.startswith("label differs") and seg not in bits:
+                bits.append(seg)
+            for mm in re.finditer(r"audio check: ([^)]*)\)|audio check says this is not the same version \(([^)]*)\)", seg):
+                txt = "audio check: " + (mm.group(1) or mm.group(2))
+                if txt not in bits:
+                    bits.append(txt)
+    return "; ".join(bits) or g["note"] or "held back for a decision"
+
+
+def suggest_rules(groups, rules):
+    """Rules.txt lines that would settle each group that is waiting for a decision. Read-only: nothing is applied.
+    Each group gets a few options (keep every copy / treat as duplicates / keep this other copy instead); the lines
+    are the rules the tool already understands, minus any the rules.txt already holds."""
+    out = []
+    for g in groups:
+        kind = g["kind"]
+        mem = g["members"]
+        review = [m for m in mem if m["role"] == "review"]
+        if kind in ("exempt", "similar") or not mem:
+            continue
+        if kind in ("exact", "variant") and not review:
+            continue
+        gid = g["id"]
+        pipe_ok = "|" not in g["artist"] and "|" not in g["title"]
+        dd_line = "dedupe-labels: %s | %s" % (g["artist"], g["title"])
+        dd_have = pipe_ok and (artist_key(g["artist"]), compact(parse_title(g["title"])[0])) in rules.dedupe_labels
+        needs_dd = kind in ("exact", "variant") and any("LEFT ALONE" in m["reason"] for m in review) and pipe_ok and not dd_have
+        opts = [{"id": "keep-both", "label": "Keep every copy",
+                 "effect": "Leaves all copies where they are; the group stops showing as needing review.",
+                 "lines": [] if gid in rules.keep_both_ids else ["keep-both-id: " + gid]}]
+        if kind in ("exact", "variant", "wide"):
+            if needs_dd:
+                opts.append({"id": "dedupe", "label": "Treat as duplicates (the currently kept copy stays)",
+                             "effect": "Ignores the label / audio-check hold, so the other copies can go to the quarantine.",
+                             "lines": [dd_line]})
+            for m in mem:
+                if m["role"] == "keep":
+                    continue
+                lines = [] if m["path"] in rules.keep_files else ["keep-file: " + m["path"]]
+                if needs_dd:
+                    lines.append(dd_line)
+                opts.append({"id": "keep-file:" + m["path"], "label": "Keep this copy instead: " + m["path"],
+                             "effect": "This file wins the group; the others become removable (a playlist or star on a loser is carried over by playlistfix first).",
+                             "lines": lines, "path": m["path"]})
+        note = ""
+        if kind == "review":
+            note = ("These are not treated as duplicates, so no rule can pick a winner. Keeping every copy is the only "
+                    "rule that applies; to merge them anyway, raise wide-tolerance (it changes every group).")
+        elif kind == "wide":
+            note = "Held for your OK: after reviewing, approve with  apply --group %s --kinds wide  or use the console's remove-duplicates card." % gid
+        out.append({"group": gid, "artist": g["artist"], "title": g["title"], "kind": kind,
+                    "why": _why_held(g, review), "note": note,
+                    "copies": [{"path": m["path"], "role": m["role"]} for m in mem], "options": opts})
+    return out
+
+
+def write_suggestions(out, groups, rules, generated):
+    """suggested-rules.txt (every line commented out, safe to paste) and suggestions.json (for the console)"""
+    sug = suggest_rules(groups, rules)
+    with open(os.path.join(out, "suggestions.json"), "w", encoding="utf-8") as fh:
+        json.dump({"version": VERSION, "generated": generated, "groups": sug}, fh, indent=1)
+    L = ["# Dewey suggested rules - generated %s by v%s" % (generated, VERSION),
+         "# Nothing here is active. For each song pick ONE option, copy its lines into rules.txt WITHOUT the leading '# ',",
+         "# save, deploy, then scan again. Options for the same song exclude each other; lines already in rules.txt are left out.",
+         "#", "# %d group(s) waiting for a decision." % len(sug), ""]
+    for x in sug:
+        L.append("# --- %s - %s  [%s]  (%s)" % (x["artist"], x["title"], x["group"], x["kind"]))
+        L.append("#     why: " + x["why"])
+        if x["note"]:
+            L.append("#     note: " + x["note"])
+        for i, o in enumerate(x["options"]):
+            L.append("#   option %s: %s" % (chr(65 + i), o["label"]))
+            L.extend("# " + ln for ln in o["lines"]) if o["lines"] else L.append("#     (already set in rules.txt)")
+        L.append("")
+    with open(os.path.join(out, "suggested-rules.txt"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(L))
+    return len(sug)
+
+
 def write_reports(out, groups, tracks, inv, plan_meta, leftovers=()):
     s = summarize(groups)
     health = health_rows(tracks, leftovers)
@@ -1812,6 +1899,7 @@ def cmd_scan(a):
             "playlist_files": [os.path.relpath(p, music).replace(os.sep, "/") for p in pls],
             "rules": rules.source}
     s = write_reports(a.out, groups, tracks, inv, meta, leftovers)
+    n_sug = write_suggestions(a.out, groups, rules, meta["generated"])
     log("-" * 60)
     log("tracks %d | exact %d | variant %d | wide-gap %d | review %d | similar %d | exempt %d" % (
         len(tracks), s["groups"]["exact"], s["groups"]["variant"], s["groups"]["wide"], s["groups"]["review"],
@@ -1826,6 +1914,9 @@ def cmd_scan(a):
             nh, sum(1 for t in tracks if t.note and not t.mislabeled), len(leftovers)))
     log("layout: %s" % ", ".join("%s=%d" % kv for kv in sorted(inv["by_layout"].items())))
     log("report: %s" % os.path.join(a.out, "report.html"))
+    if n_sug:
+        log("suggested rules for %d group(s) waiting for a decision: %s (every line commented out; copy the ones you want into rules.txt)" % (
+            n_sug, os.path.join(a.out, "suggested-rules.txt")))
     log("nothing was changed. next: review the report, edit rules.txt, then 'apply' (dry run first).")
 
 

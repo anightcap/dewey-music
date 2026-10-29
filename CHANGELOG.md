@@ -2,6 +2,12 @@
 
 Versions are the tool's (`dewey.py`) and the web console's (`webui.py`).
 
+## 1.13.0 (tool) / 1.11.0 (console)
+
+**Added**
+- **Suggested rules.** A scan now writes `suggested-rules.txt` and `suggestions.json` next to the report: for every group waiting for a decision (a clean/explicit label or audio-check hold, copies whose lengths are too far apart, a wide-gap group) it lists the `rules.txt` lines that would settle it: keep every copy (`keep-both-id`), treat the copies as duplicates (`dedupe-labels`), or keep a different copy than the one the tool picked (`keep-file`, plus the `dedupe-labels` line it needs). Every line in the file is commented out, so pasting it whole changes nothing; lines already in `rules.txt` are left out.
+- The Duplicates page shows them: a **Suggested rules** button on each group that needs a decision, and a panel above the list where you tick one option per song and copy all the ticked lines as one block. The console still never edits `rules.txt`; you paste the lines in on your own machine, deploy and scan again.
+
 ## 1.12.8 (tool) / 1.10.4 (console), first public release
 
 Dewey had been in daily use on the author's own NAS before this release; this is the first version published as a repository.

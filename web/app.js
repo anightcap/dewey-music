@@ -493,8 +493,68 @@ function cmdCard(c, hl) {
 
 // ---------------------------------------------------------------- duplicates
 const D = { kind: '', status: '', flag: '', q: '', sort: 'artist', page: 1 };
+let SUG = {};                       // group id -> suggested rules for it (from the last scan)
+const PICK = {};                    // group id -> index of the option ticked in the bulk panel
+function copyRules(lines, what) {
+  const txt = lines.join('\n') + '\n';
+  const done = () => toast(what + ' copied. Paste into rules.txt, deploy, then rescan.');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => toast('Copy was blocked by the browser; select the text and copy it by hand.', true));
+  else toast('Copy is not available here; select the text and copy it by hand.', true);
+}
+function sugOption(o, extra) {
+  return h('div', { class: 'sug-opt' },
+    h('div', { class: 'sug-label' }, extra, o.label),
+    h('div', { class: 'dim' }, o.effect),
+    o.lines.length ? h('pre', { class: 'raw sug-lines' }, o.lines.join('\n')) : h('div', { class: 'dim' }, '(already set in rules.txt)'));
+}
+function groupSuggest(x) {
+  const box = h('div', { class: 'sug', hidden: true },
+    h('div', { class: 'dim' }, 'Why it is held: ' + x.why),
+    x.note ? h('div', { class: 'note' }, x.note) : null,
+    h('div', { class: 'dim' }, 'Pick one option. Copy its lines into rules.txt (on the PC), deploy, then rescan. Nothing changes until then.'),
+    x.options.map(o => h('div', { class: 'sug-row' }, sugOption(o), h('button', { class: 'btn small', disabled: !o.lines.length, onclick: () => copyRules(o.lines, 'Rule lines') }, 'copy lines'))));
+  const btn = h('button', { class: 'btn small', onclick: () => { box.hidden = !box.hidden; } }, 'Suggested rules');
+  return [btn, box];
+}
+function suggestPanel(sg) {
+  if (!sg.exists || !sg.groups.length) return null;
+  const F = { q: '', kind: '' };
+  const body = h('div', { hidden: true });
+  const count = h('span', { class: 'dim' });
+  const copyBtn = h('button', { class: 'btn small primary', onclick: () => {
+    const lines = []; sg.groups.forEach(x => { const i = PICK[x.group]; if (i !== undefined && x.options[i]) x.options[i].lines.forEach(l => { if (!lines.includes(l)) lines.push(l); }); });
+    if (!lines.length) return toast('Nothing ticked yet.', true);
+    copyRules(lines, lines.length + ' rule line(s)');
+  } }, 'Copy ticked lines');
+  const list = h('div');
+  const refresh = () => { const n = Object.keys(PICK).filter(k => PICK[k] !== undefined).length; count.textContent = n + ' group(s) ticked'; };
+  const draw = () => {
+    const q = F.q.toLowerCase();
+    const rows = sg.groups.filter(x => (!F.kind || x.kind === F.kind) && (!q || (x.artist + ' ' + x.title).toLowerCase().includes(q)));
+    list.replaceChildren(...rows.slice(0, 100).map(x => h('div', { class: 'sug-group' },
+      h('div', null, badge(x.kind, KIND_CLS[x.kind]), ' ', h('b', null, x.title), ' ', h('span', { class: 'dim' }, x.artist + '  [' + x.group + ']')),
+      h('div', { class: 'dim' }, x.why),
+      h('label', { class: 'sug-pick' }, h('input', { type: 'radio', name: 'sg-' + x.group, checked: PICK[x.group] === undefined, onchange: () => { delete PICK[x.group]; refresh(); } }), ' leave undecided'),
+      x.options.map((o, i) => h('label', { class: 'sug-pick' }, h('input', { type: 'radio', name: 'sg-' + x.group, checked: PICK[x.group] === i, disabled: !o.lines.length, onchange: () => { PICK[x.group] = i; refresh(); } }), ' ', o.label, o.lines.length ? '' : '  (already set)')))),
+      rows.length > 100 ? h('div', { class: 'dim' }, 'Showing the first 100 of ' + rows.length + '; narrow the list with the search box.') : null, rows.length ? null : empty('Nothing matches.'));
+    refresh();
+  };
+  body.append(
+    h('p', { class: 'dim' }, 'For each song pick what you want. Copy ticked lines gives one block to paste into rules.txt (on the PC), then deploy and rescan. Options for the same song exclude each other; this page never edits rules.txt.'),
+    h('div', { class: 'toolbar' }, h('input', { type: 'search', placeholder: 'search artist or title', style: 'width:260px', oninput: debounce((e) => { F.q = e.target.value; draw(); }, 200) }),
+      h('select', { onchange: (e) => { F.kind = e.target.value; draw(); } }, [['', 'all kinds'], ['exact', 'exact'], ['variant', 'variant'], ['wide', 'wide gap'], ['review', 'review']].map(([v, l]) => h('option', { value: v }, l))),
+      copyBtn, h('button', { class: 'btn small', onclick: () => { Object.keys(PICK).forEach(k => delete PICK[k]); draw(); } }, 'clear ticks'), count),
+    list);
+  draw();
+  const head = h('button', { class: 'btn', onclick: () => { body.hidden = !body.hidden; } }, 'Suggested rules (' + sg.groups.length + ' groups waiting for a decision)');
+  return h('div', { class: 'sug-panel' }, head, '  ', h('a', { href: '/out/suggested-rules.txt', download: 'suggested-rules.txt', class: 'dim' }, 'suggested-rules.txt'),
+    sg.rules_changed ? h('div', { class: 'notice warn' }, 'rules.txt changed after this scan, so some suggestions may already be done or out of date. Rescan to refresh them.') : null, body);
+}
 async function pageDupes() {
   const info = await api('plan');
+  let sg = { exists: false, groups: [] };
+  try { sg = await api('suggestions'); } catch (e) { /* older scan: no suggestions yet */ }
+  SUG = {}; sg.groups.forEach(x => { SUG[x.group] = x; });
   if (!info.exists) { page().replaceChildren(h('h1', null, 'Duplicates'), empty('No scan has been run yet.', h('a', { class: 'btn primary', href: '#/run?cmd=scan' }, 'Run the scan'))); return; }
   const list = h('div'); const bar = h('div');
   const load = async () => {
@@ -518,7 +578,7 @@ async function pageDupes() {
     info.gone ? h('div', { class: 'notice warn' }, num(info.gone) + ' of the ' + num(info.status.removable || 0) + ' removable groups below have already been removed from the library since this scan (their files are no longer there). Rescan to refresh the list.  ', h('a', { class: 'btn small', href: '#/run?cmd=scan' }, 'Rescan')) : null,
     stale ? h('div', { class: 'notice warn' }, 'The library was changed after this scan (' + info.stale_by.join(', ') + '). Rescan before trusting the groups.  ', h('a', { class: 'btn small', href: '#/run?cmd=scan' }, 'Rescan')) : null,
     h('div', { class: 'sub dim mono' }, 'scan v' + info.version + ' from ' + info.generated + ', tolerance ' + info.tolerance + ' s / wide ' + info.wide_tolerance + ' s, would free ' + info.removable_h + '  ·  ', h('a', { href: '/out/report.html', target: '_blank' }, 'original report.html'), '  ·  ', h('a', { href: '/out/dupes.csv', download: 'dupes.csv' }, 'dupes.csv')),
-    bar, list);
+    suggestPanel(sg), bar, list);
   load();
 }
 
@@ -564,7 +624,11 @@ function groupBody(g) {
     acts.push(h('button', { class: 'btn small', title: 'decodes both files and compares the audio', onclick: () => startJob('compare', { file_a: a.path, file_b: b.path }) }, 'Compare the audio of the first two'));
   }
   acts.push(h('button', { class: 'btn small', onclick: () => { navigator.clipboard && navigator.clipboard.writeText(g.id).then(() => toast('group id ' + g.id + ' copied')); } }, 'copy group id ' + g.id));
+  const sx = SUG[g.id];
+  const sugParts = sx ? groupSuggest(sx) : null;
+  if (sugParts) acts.push(sugParts[0]);
   out.push(h('div', { class: 'toolbar' }, acts));
+  if (sugParts) out.push(sugParts[1]);
   return out;
 }
 
