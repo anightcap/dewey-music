@@ -546,7 +546,7 @@ function suggestPanel(sg) {
       copyBtn, h('button', { class: 'btn small', onclick: () => { Object.keys(PICK).forEach(k => delete PICK[k]); draw(); } }, 'clear ticks'), count),
     list);
   draw();
-  const head = h('button', { class: 'btn', onclick: () => { body.hidden = !body.hidden; } }, 'Suggested rules (' + sg.groups.length + ' groups waiting for a decision)');
+  const head = h('button', { class: 'btn', onclick: () => { body.hidden = !body.hidden; } }, 'Suggested rules (' + sg.groups.length + (sg.groups.length === 1 ? ' group' : ' groups') + ' waiting for a decision)');
   return h('div', { class: 'sug-panel' }, head, '  ', h('a', { href: '/out/suggested-rules.txt', download: 'suggested-rules.txt', class: 'dim' }, 'suggested-rules.txt'),
     sg.rules_changed ? h('div', { class: 'notice warn' }, 'rules.txt changed after this scan, so some suggestions may already be done or out of date. Rescan to refresh them.') : null, body);
 }

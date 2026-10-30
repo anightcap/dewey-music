@@ -19,7 +19,7 @@ docker compose --profile tools run --rm dewey scan      # a command-line scan (r
 - **Beets:** set `DEWEY_BEETS` and `COMPOSE_FILE=docker-compose.yml:compose.beets.yml` in `.env` (see `compose.beets.yml`).
 - **Reaching the console from other devices:** keep `DEWEY_WEB_BIND=127.0.0.1` and put HTTPS in front of it (a reverse proxy, Tailscale Serve). Never publish it on the internet.
 - **Updating:** `git pull`, then `docker compose build` and `docker compose up -d` (add `--profile runner` if you use the runner).
-- The Compose files have been validated with `docker compose config`, and the code is covered by the project's tests; **running them on a real Docker host is still new**. Please report what you find.
+- The Compose files pass `docker compose config` for every profile, and I've run the setup on my own Synology NAS (as a separate project with a scratch library: read-only library, https through Tailscale Serve, arming, folder layout, undo and file new music, real and dry). The Beets overlay and a wrong user id haven't been exercised, and I haven't tried other hosts. Please report what you find.
 
 ### Option B: from a Windows PC with ssh (what the author runs on a Synology NAS)
 

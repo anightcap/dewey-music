@@ -57,8 +57,8 @@ docker compose up -d
 
 Open <http://127.0.0.1:8099>, run **Scan**, **File new music** and **Folder layout** from the Run page, then browse Duplicates, New music and Folder layout.
 
-![Overview](../docs/screenshots/overview.png)
-![Duplicates](../docs/screenshots/duplicates.png)
+![Overview](../docs/screenshots/demo-overview.png)
+![Duplicates](../docs/screenshots/demo-duplicates.png)
 
 ## 4. Try a real run (on the demo only)
 

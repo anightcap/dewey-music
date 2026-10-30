@@ -6,8 +6,6 @@ I wrote it for my own library, which lives on a Synology NAS with Navidrome, and
 
 *Named after the Dewey Decimal system. Every item gets one right place on the shelf.*
 
-Version: tool 1.13.0, web console 1.11.0.
-
 ![The overview page of the web console](docs/screenshots/overview.png)
 
 ## What it does
@@ -35,10 +33,14 @@ python3 demo/make_demo.py
 
 That builds a small invented library (generated tones, made-up artists) with duplicates, a playlist that blocks one of them, badly named files and a folder of new music. You can run every dry run on it and click around the console before you point Dewey at anything real. The steps are in [`demo/README.md`](demo/README.md).
 
+Suggested rules: every group waiting for a decision gets copy-and-paste `rules.txt` lines.
+
 | | |
 |---|---|
-| ![Duplicate groups](docs/screenshots/duplicates.png) | ![The folder layout plan](docs/screenshots/layout.png) |
-| ![New music waiting to be filed](docs/screenshots/new-music.png) | ![The Run page](docs/screenshots/run.png) |
+| ![Suggested rules panel](docs/screenshots/duplicates.png) | ![One duplicate group with its options](docs/screenshots/suggested-rules.png) |
+| ![The folder layout plan](docs/screenshots/layout.png) | ![New music waiting to be filed](docs/screenshots/new-music.png) |
+
+![The Run page](docs/screenshots/run.png)
 
 ## Install
 
@@ -52,7 +54,7 @@ docker compose up -d            # starts the read-only console on http://127.0.0
 docker compose --profile tools run --rm dewey scan    # a read-only scan from the command line
 ```
 
-There's also a Windows launcher that drives a NAS over ssh, which is how I run it. Both routes, the optional runner, and fixes for the usual snags are in [`docs/INSTALL.md`](docs/INSTALL.md). Compose files pass `docker compose config` and the test suite, but I haven't run them on many setups, so tell me what you find.
+There's also a Windows launcher that drives a NAS over ssh, which is how I run it. Both routes, the optional runner, and fixes for the usual snags are in [`docs/INSTALL.md`](docs/INSTALL.md). I've run the Compose setup on my own NAS but on few other setups, so tell me what you find.
 
 ## Using it
 

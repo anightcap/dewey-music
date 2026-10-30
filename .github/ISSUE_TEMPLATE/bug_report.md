@@ -13,7 +13,7 @@ labels: bug
 ```
 ```
 
-**Versions and install** (footer of the console, e.g. "tool v1.13.0 · web v1.11.0"; Docker Compose or PC launcher; Navidrome / Beets version if relevant)
+**Versions and install** (footer of the console, e.g. "tool v1.x.x · web v1.x.x"; Docker Compose or PC launcher; Navidrome / Beets version if relevant)
 
 **Is anything changed that should not be?** If files were moved wrongly, please do not run anything else on them before reading the `undo` section of the README.
 
