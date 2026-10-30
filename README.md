@@ -2,7 +2,7 @@
 
 Dewey tidies a self-hosted music library. It finds songs that are stored more than once, plans one folder layout for the whole collection, files new music into place, and keeps Navidrome's playlists and Beets' database pointing at the right files while it does.
 
-I wrote it for my own library, which lives on a Synology NAS with Navidrome, and I've used it there every day since. Because it moves files around, it's careful: nothing changes until you've read a dry run, duplicates go to a quarantine folder instead of being deleted, and every run can be undone.
+I wrote this bad boy for my own library, which lives on a Synology NAS with Navidrome, and I've used it there every day since. Because it moves files around, this thing's careful: nothing changes until you've read a dry run, duplicates go to a quarantine folder instead of being deleted, and every run can be undone. The quarantined files purge job can be run after 30 days.
 
 *Named after the Dewey Decimal system. Every item gets one right place on the shelf.*
 
@@ -73,12 +73,12 @@ A few things worth knowing before you rely on it:
 
 ## About
 
-**Built with AI.** I built Dewey with a lot of help from Claude. I run, test and review all of it.
+**Built with AI.** I was super annoyed with how utterly disorganized my library was, so I built this bad boy with quite a bit of Claude support. I review, run and test the entire engine locally and on my NAS before release.
 
-**Support.** This is a hobby project. There's at most one release every two weeks, and fixes arrive in releases rather than one-off patches. Issues are welcome, but I may be slow to answer.
+**Support.** Hobby project. There's at most one release every two weeks, and fixes will arrive in releases rather than one-off patches (unless there are serious vulnerabilities or I'm bored). Issues are welcome, but I may be slow to answer.
 
 **Contributing and security.** A bug report with the dry-run log is the most useful thing you can send. See [`CONTRIBUTING.md`](CONTRIBUTING.md). Please report security problems privately, as described in [`SECURITY.md`](SECURITY.md). Changes are listed in [`CHANGELOG.md`](CHANGELOG.md).
 
-**No warranty.** Dewey moves your files. It's built so nothing happens without a dry run you've read, but that doesn't replace a backup.
+**No warranty.** Dewey moves your dang files. It's built so nothing happens without a dry run you've read, but that doesn't replace a backup.
 
 **License.** [MIT](LICENSE).
