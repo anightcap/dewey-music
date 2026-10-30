@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs'); const cp = require('child_process');
 const R = process.argv[2];
-const code = () => cp.execSync(`python3 -c "import importlib.util,time;s=importlib.util.spec_from_file_location('r','${process.env.DEWEY_REPO}/runner.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(m.totp_code(open('${R}/state/totp.key').read().strip(),int(time.time()//30)))"`).toString().trim();
+const code = (off = 0) => cp.execSync(`python3 -c "import importlib.util,time;s=importlib.util.spec_from_file_location('r','${process.env.DEWEY_REPO}/runner.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);print(m.totp_code(open('${R}/state/totp.key').read().strip(),int(time.time()//30)+${off}))"`).toString().trim();
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ bypassCSP: true, ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1000 } });
@@ -12,6 +12,10 @@ const code = () => cp.execSync(`python3 -c "import importlib.util,time;s=importl
   await p.fill('.armcode', '000000'); await p.click('.armbox .btn.primary');
   await p.waitForTimeout(800); console.log('toast after wrong code:', await p.textContent('#toast'));
   await p.fill('.armcode', code()); await p.click('.armbox .btn.primary');
+  // a code only works once per 30 s step; if this step's code was already used (or the step just rolled over), try the next one
+  if (!(await p.waitForSelector('.armbox.on', { timeout: 4000 }).catch(() => null))) {
+    await p.fill('.armcode', code(1)); await p.click('.armbox .btn.primary');
+  }
   await p.waitForSelector('.armbox.on', { timeout: 8000 });
   console.log('armed banner:', (await p.textContent('.armbox')).slice(0, 120));
   console.log('sidebar:', (await p.textContent('#safety')).replace(/\s+/g, ' '));
