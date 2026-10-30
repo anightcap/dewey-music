@@ -8,6 +8,10 @@ Please report a vulnerability **privately**: on GitHub, open the repository's **
 Include what you found, how to reproduce it, and the version (footer of the console). This is a hobby project: expect a reply when the maintainer
 can get to it, not within a fixed time, and fixes arrive in the next release.
 
+## Supported versions
+
+Only the latest release gets fixes.
+
 ## What is in scope
 
 Anything that lets someone change, delete or read files or secrets they should not be able to, in particular:
