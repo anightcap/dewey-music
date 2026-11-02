@@ -2,6 +2,14 @@
 
 Versions are the tool's (`dewey.py`) and the web console's (`webui.py`).
 
+## Unreleased (console 1.12.0)
+
+**Added**
+- **A proper login page** instead of the browser's grey sign-in pop-up: a password field with a show/hide button, support for password managers, wrong-password errors on the page and a lock-out countdown. Any console address opened while signed out shows it, and you land on the page you asked for after signing in. The sidebar shows who is signed in and has **sign out**.
+- Sign-ins are sessions: a random token in an `HttpOnly`, `SameSite=Strict` cookie (`Secure` over https) with no expiry date, so closing the browser ends it. A session ends after 30 minutes of no use or 8 hours in all (`MD_WEB_SESSION_IDLE_MIN`, `MD_WEB_SESSION_MAX_HOURS`), but never while a job is running, and a job never depends on the session. The open page's background refresh does not keep an idle session alive. The server keeps only a hash of the token in memory, so restarting the console signs everyone out.
+- Unchanged: the user names and passwords (`MD_WEB_USER`, `MD_WEB_PASS`, `_2` to `_9`), the lock-out after repeated wrong logins, and the same-origin and custom-header rule on every change. HTTP Basic still works for scripts (`curl -u`), which are still offered the standard challenge; browsers are not.
+- Tests: 38 checks on the login API and sessions, 18 in the browser.
+
 ## 1.13.0 (tool) / 1.11.0 (console)
 
 **Added**

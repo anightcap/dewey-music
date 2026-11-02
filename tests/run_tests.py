@@ -29,6 +29,7 @@ SUITES = [
     ("undo and purge",             "api", "rig6", "t10.py", [], None),
     ("demo library",               "api", None,   "t11_demo.py", [], None),
     ("suggested rules",            "api", None,   "t12_suggest.py", [], None),
+    ("console login page",         "api", "rig0", "t13_login.py", [], None),
     ("browser: playlist fix",      "ui",  "rig0", "ui.js", [], None),
     ("browser: remove duplicates", "ui",  "rig2", "ui_apply.js", [], None),
     ("browser: file new music",    "ui",  "rig3", "ui_place.js", [], None),
@@ -37,6 +38,7 @@ SUITES = [
     ("browser: beets repoint",     "ui",  "rig5", "ui_beets.js", [], None),
     ("browser: undo and purge",    "ui",  "rig6", "ui_undo.js", [], None),
     ("browser: suggested rules",   "ui",  "rig7", "ui_suggest.js", [], None),
+    ("browser: login page",        "ui",  "rig0", "ui_login.js", [], None),
 ]
 
 

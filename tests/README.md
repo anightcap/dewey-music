@@ -17,6 +17,7 @@ DEWEY_TEST_KEEP=1 python3 tests/run_tests.py   # keep the temporary rigs (path p
 | Group | What it proves |
 |---|---|
 | console basics, arming lockout, arming expiry | The login, the six-digit code and its lockout, arming that ends by itself, and every refusal while not armed |
+| console login page | The sign-in page (shown instead of a browser pop-up), the session cookie's flags, sign out, idle and overall session limits (never mid-job), the lock-out, and that scripts using Basic login still work; in the browser, the page itself, a wrong password, a phone-sized screen and the session ending under an open page |
 | remove duplicates, file new music, folder layout, layout batches, Beets repoint, undo and purge | Each real run through the runner: it only starts from a finished dry run of the same command that has not been used, with the exact typed count; forged options, forged fingerprints and stale plans are refused; the files end up where the dry run said |
 | no false "interrupted" | Reading a job's log while it finishes never reports it as interrupted |
 | demo library | `demo/make_demo.py` still builds the library the demo README describes, and every dry run on it gives the documented result |

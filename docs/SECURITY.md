@@ -15,7 +15,7 @@ Dewey is designed so that **a stolen console login cannot change a file**, and s
 
 - Bind it to `127.0.0.1` (`DEWEY_WEB_BIND`) and reach it through an HTTPS front end on a private network (Tailscale Serve, a VPN, or a reverse proxy with its own login). **Do not publish it on the public internet**, and do not use a public tunnel.
 - Set `MD_WEB_HOSTS` so the console answers only to your host name (this blocks DNS-rebinding tricks).
-- The login is HTTP Basic with a lockout after repeated failures; every POST needs a custom header and a same-origin check. A Navidrome password typed into the console is accepted only over HTTPS and is never stored.
+- The console has its own login page. A sign-in is a random session token in an `HttpOnly`, `SameSite=Strict` cookie (`Secure` over https) that ends when the browser closes, after 30 minutes of no use, or after 8 hours (never mid-job); the server keeps only a hash of it, in memory. Five different wrong logins lock the login for a minute, then longer. HTTP Basic is still accepted for scripts. Every change request needs a custom header and a same-origin check. A Navidrome password typed into the console is accepted only over HTTPS and is never stored.
 - The Security page of the console shows how exposed it is right now, and the exact setting that fixes each weak spot.
 
 ## Honest limits

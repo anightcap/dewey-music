@@ -116,7 +116,7 @@ def read_version():
 
 
 VERSION = read_version()
-WEB_VERSION = "1.11.0 (phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
+WEB_VERSION = "1.12.0 (login page; phase 2: real runs through the runner: playlist fix, remove duplicates, file new music, folder layout, Beets, undo, purge)"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -956,6 +956,7 @@ def api_security(req):
         add("Console login", "bad", "none: anyone who can reach this port can open the console",
             "Set MD_WEB_USER=... and MD_WEB_PASS=... (a long random password) in %s, then %s" % (CFG_FILE, APPLY_HINT))
     if login:
+        add("Sessions", "ok", "a login page, not a browser pop-up. Signing in ends after %d minutes of no use, or after %d hours in all (never while a job is running), and when the browser is closed; restarting the console signs everyone out. MD_WEB_SESSION_IDLE_MIN and MD_WEB_SESSION_MAX_HOURS change the two limits." % (SESSIONS.IDLE // 60, SESSIONS.MAX // 3600))
         if gs["locked_for"]:
             add("Wrong logins", "bad", "login is locked for %d more seconds after repeated wrong passwords" % gs["locked_for"])
         elif gs["last_hour"]:
@@ -1997,6 +1998,77 @@ class LoginGuard(object):
 
 
 GUARD = LoginGuard()
+
+
+class Sessions(object):
+    """Browser sign-ins made on the login page. A session is a random token in a cookie (HttpOnly, SameSite=Strict, no expiry date, so
+    closing the browser ends it); the server keeps only a hash of it, in memory, so restarting the console signs everyone out.
+    A session ends after IDLE seconds without use, and after MAX seconds in all, except that it is never cut off while a job is
+    running (the page is then polling, and the job itself never depends on the session). While no job runs, the page's background
+    status poll does not count as use, so an open but forgotten tab really does time out."""
+    IDLE = max(300, min(14400, int(ENV("MD_WEB_SESSION_IDLE_MIN", "30") or 30) * 60))
+    MAX = max(3600, min(86400, int(ENV("MD_WEB_SESSION_MAX_HOURS", "8") or 8) * 3600))
+    LIMIT = 64
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.items = {}
+
+    @staticmethod
+    def _key(token):
+        return hashlib.sha256(token.encode("utf-8", "replace")).hexdigest()
+
+    def create(self, user):
+        tok = secrets.token_urlsafe(32)
+        now = time.time()
+        with self.lock:
+            for k in [k for k, v in self.items.items() if now - v["last"] > self.IDLE or now - v["t0"] > self.MAX + 3600]:
+                del self.items[k]
+            while len(self.items) >= self.LIMIT:                      # a runaway client cannot fill memory: the oldest goes
+                del self.items[min(self.items, key=lambda k: self.items[k]["last"])]
+            self.items[self._key(tok)] = {"user": user, "t0": now, "last": now}
+        return tok
+
+    def get(self, token, touch=True, busy=lambda: False):
+        """the user a valid session belongs to, else ''"""
+        if not token or len(token) > 200:
+            return ""
+        k, now = self._key(token), time.time()
+        with self.lock:
+            v = self.items.get(k)
+            if not v:
+                return ""
+            if now - v["last"] > self.IDLE:
+                del self.items[k]
+                return ""
+            if now - v["t0"] > self.MAX:
+                if not busy():
+                    del self.items[k]
+                    return ""
+            if touch:
+                v["last"] = now
+            return v["user"]
+
+    def info(self, token):
+        now = time.time()
+        with self.lock:
+            v = self.items.get(self._key(token or ""))
+            if not v:
+                return None
+            return {"user": v["user"], "idle_left": max(0, int(self.IDLE - (now - v["last"]))), "max_left": max(0, int(self.MAX - (now - v["t0"])))}
+
+    def end(self, token):
+        with self.lock:
+            self.items.pop(self._key(token or ""), None)
+
+    def count(self):
+        with self.lock:
+            return len(self.items)
+
+
+SESSIONS = Sessions()
+COOKIE_NAME = "dewey_session"
+LOGIN_ASSETS = {"/login.css": "text/css; charset=utf-8", "/login.js": "application/javascript; charset=utf-8"}
 CSP = ("default-src 'self'; img-src 'self' data:; media-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; "
        "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 
@@ -2069,7 +2141,43 @@ class Handler(BaseHTTPRequestHandler):
                     hit = name
             self._user = hit
             return bool(hit), True
+        tok = self._cookie(COOKIE_NAME)
+        if tok:
+            p = urlparse(self.path).path
+            busy = lambda: bool(JOBS.current_info())
+            u = SESSIONS.get(tok, touch=(p != "/api/status" or busy()), busy=busy)
+            if u:
+                self._user = u
+                return True, False
         return False, bool(h)
+
+    def _cookie(self, name):
+        for part in (self.headers.get("Cookie") or "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == name:
+                return v
+        return ""
+
+    def _cookie_header(self, token, clear=False):
+        flags = "Path=/; HttpOnly; SameSite=Strict" + ("; Secure" if self._via_https() else "")
+        return "%s=%s; %s%s" % (COOKIE_NAME, "" if clear else token, flags, "; Max-Age=0" if clear else "")
+
+    def _login_page(self):
+        fp = os.path.join(WEBROOT, "login.html")
+        with open(fp, "rb") as fh:
+            self._send(401, fh.read(), "text/html; charset=utf-8")
+
+    def _deny(self):
+        """nobody is signed in. A browser opening a page gets the login page; the page's own requests get a plain 401 (no browser
+        pop-up); only a script that is not a browser (curl, a monitor) is offered the standard Basic challenge."""
+        path = unquote(urlparse(self.path).path)
+        dest = self.headers.get("Sec-Fetch-Dest") or ""
+        nav = (self.command in ("GET", "HEAD") and "text/html" in (self.headers.get("Accept") or "") and not path.startswith(("/api/", "/out/"))
+               and dest in ("", "document"))
+        if nav:
+            return self._login_page()
+        extra = {} if (dest or self.headers.get("X-MD-Web")) else {"WWW-Authenticate": 'Basic realm="Dewey"'}
+        self._send(401, {"error": "login required"}, extra=extra)
 
     def _auth_ok(self):
         return self._auth_state()[0]
@@ -2128,7 +2236,7 @@ class Handler(BaseHTTPRequestHandler):
                 secs = GUARD.fail(self.headers.get("Authorization", ""))
                 who = self.headers.get("Tailscale-User-Login") or "-"
                 sys.stderr.write("LOGIN FAILED from %s (tailscale user %s)%s\n" % (self.client_address[0], who, " - login locked for %d s" % secs if secs else ""))
-            self._send(401, {"error": "login required"}, extra={"WWW-Authenticate": 'Basic realm="Dewey"'})
+            self._deny()
             return False
         if login:
             GUARD.ok()
@@ -2139,6 +2247,10 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- GET -----------------------------------------------------------------------------------------------------
     def do_GET(self):
+        asset = unquote(urlparse(self.path).path)
+        if asset in LOGIN_ASSETS and LOGIN_ON and self._host_ok():          # the login page's own files must load before anyone is signed in
+            with open(os.path.join(WEBROOT, asset.lstrip("/")), "rb") as fh:
+                return self._send(200, fh.read(), LOGIN_ASSETS[asset])
         if not self._gate():
             return
         u = urlparse(self.path)
@@ -2162,6 +2274,10 @@ class Handler(BaseHTTPRequestHandler):
     def _api_get(self, p, q):
         if p == "status":
             return self._send(200, api_status())
+        if p == "session":
+            inf = SESSIONS.info(self._cookie(COOKIE_NAME)) if LOGIN_ON else None
+            return self._send(200, {"login": LOGIN_ON, "user": (inf or {}).get("user") or getattr(self, "_user", ""), "cookie": bool(inf),
+                                    "idle_minutes": SESSIONS.IDLE // 60, "max_hours": SESSIONS.MAX // 3600})
         if p == "widget":
             return self._send(200, api_widget())
         if p == "security":
@@ -2223,7 +2339,53 @@ class Handler(BaseHTTPRequestHandler):
         return self._err(404, "unknown endpoint")
 
     # -- POST ----------------------------------------------------------------------------------------------------
+    def _session_post(self, path):
+        """POST /api/login and /api/logout: answered before the gate, because nobody is signed in yet"""
+        if not self._host_ok():
+            return self._send(421, {"error": "this console does not answer to that host name (see MD_WEB_HOSTS in %s)" % CFG_FILE})
+        if self.headers.get("X-MD-Web") != "1":
+            return self._err(403, "missing X-MD-Web header")
+        org = self.headers.get("Origin")
+        if org and urlparse(org).netloc.lower() not in self._names():
+            return self._err(403, "cross-origin request refused")
+        n = int(self.headers.get("Content-Length") or 0)
+        if n > 4000:
+            return self._err(413, "too large")
+        try:
+            body = json.loads(self.rfile.read(n) or b"{}")
+        except ValueError:
+            return self._err(400, "bad JSON")
+        if path == "/api/logout":
+            SESSIONS.end(self._cookie(COOKIE_NAME))
+            return self._send(200, {"ok": True}, extra={"Set-Cookie": self._cookie_header("", clear=True)})
+        if not LOGIN_ON:
+            return self._err(400, "no console login is set up")
+        left = GUARD.locked_for()
+        if left:
+            return self._send(429, {"error": "too many wrong logins: try again in %d s" % left, "locked_for": left}, extra={"Retry-After": str(left)})
+        u, pw = str(body.get("user") or ""), str(body.get("password") or "")
+        hit = ""
+        for name, good in USERS:                      # every account is compared, so the time taken does not say which one exists
+            if hmac.compare_digest(u.encode("utf-8"), name.encode("utf-8")) & hmac.compare_digest(pw.encode("utf-8"), good.encode("utf-8")):
+                hit = name
+        if not hit:
+            secs = GUARD.fail("login:%s:%s" % (u, pw))
+            sys.stderr.write("LOGIN FAILED from %s (tailscale user %s)%s\n" % (self.client_address[0], self.headers.get("Tailscale-User-Login") or "-",
+                                                                               " - login locked for %d s" % secs if secs else ""))
+            time.sleep(0.4)
+            msg = "wrong user name or password"
+            if secs:
+                return self._send(429, {"error": "too many wrong logins: locked for %d s" % secs, "locked_for": secs}, extra={"Retry-After": str(secs)})
+            return self._send(401, {"error": msg})
+        GUARD.ok()
+        tok = SESSIONS.create(hit)
+        sys.stderr.write("LOGIN ok: %s from %s\n" % (hit, self.client_address[0]))
+        return self._send(200, {"ok": True, "user": hit}, extra={"Set-Cookie": self._cookie_header(tok)})
+
     def do_POST(self):
+        p0 = unquote(urlparse(self.path).path)
+        if p0 in ("/api/login", "/api/logout"):
+            return self._session_post(p0)
         if not self._gate():
             return
         # a custom header a plain cross-site form cannot send, plus a same-origin check

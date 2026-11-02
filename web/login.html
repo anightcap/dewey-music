@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Sign in · Dewey</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2313161d'/%3E%3Cpath d='M12 9v11.2a3.2 3.2 0 1 1-2-3V9l11-2v10.2a3.2 3.2 0 1 1-2-3V9.6z' fill='%234ade80'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/login.css">
+</head>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+<main class="card" role="main">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1a1e28"/><path d="M12 9v11.2a3.2 3.2 0 1 1-2-3V9l11-2v10.2a3.2 3.2 0 1 1-2-3V9.6z" fill="#4ade80"/></svg>
+    <span class="word">Dewey</span>
+  </div>
+  <p class="sub">Sign in to the music library console</p>
+  <form id="f" autocomplete="on">
+    <label for="u">User</label>
+    <input id="u" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+    <label for="p">Password</label>
+    <div class="pw">
+      <input id="p" name="password" type="password" autocomplete="current-password" required>
+      <button type="button" id="eye" class="eye" aria-label="show password" title="show password">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div id="err" class="err" role="alert" aria-live="polite" hidden></div>
+    <button id="go" class="go" type="submit">Sign in</button>
+  </form>
+  <p class="foot">Reachable from your LAN or tailnet only. Signing in lasts while you are using the console and ends after a period of no use.</p>
+</main>
+<p class="tag">Every item gets one right place on the shelf.</p>
+<noscript><p class="tag">This page needs JavaScript to sign in.</p></noscript>
+<script src="/login.js"></script>
+</body>
+</html>

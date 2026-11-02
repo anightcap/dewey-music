@@ -36,17 +36,23 @@ function h(tag, attrs, ...kids) {
   kids.forEach(add);
   return e;
 }
+let SESSION = null;
+// the sign-in ended (idle timeout, console restarted, signed out in another tab): reload, which shows the login page. Jobs keep running.
+function sessionLost() { if (!sessionLost.done) { sessionLost.done = true; location.reload(); } }
 const api = async (path) => {
-  const r = await fetch('/api/' + path, { cache: 'no-store' });
+  const r = await fetch('/api/' + path, { cache: 'no-store', headers: { 'X-MD-Web': '1' } });
+  if (r.status === 401) { sessionLost(); return new Promise(() => {}); }   // the page is about to reload into the login page: nothing to report
   if (!r.ok) { let m = r.statusText; try { m = (await r.json()).error || m; } catch (e) {} throw new Error(m); }
   return r.json();
 };
 const post = async (path, body) => {
   const r = await fetch('/api/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-MD-Web': '1' }, body: JSON.stringify(body || {}) });
   let j = {}; try { j = await r.json(); } catch (e) {}
+  if (r.status === 401) { sessionLost(); return new Promise(() => {}); }
   if (!r.ok) throw new Error(j.error || r.statusText);
   return j;
 };
+const signOut = async () => { try { await post('logout'); } catch (e) {} location.reload(); };
 const qs = (o) => Object.entries(o).filter(([, v]) => v !== '' && v !== null && v !== undefined).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
 const human = (n) => { n = Number(n || 0); const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i ? n.toFixed(1) : n.toFixed(0)) + ' ' + u[i]; };
 const num = (n) => Number(n || 0).toLocaleString('en-CA');
@@ -153,6 +159,7 @@ function drawSafety() {
     (() => { const rr = s.runner; return h('div', { class: rr && rr.armed ? 'bad' : rr && rr.available ? 'ok' : 'dim' },
       rr && rr.armed ? '● WRITE ACCESS ARMED (' + Math.ceil(rr.armed_left / 60) + ' min)' : rr && rr.available ? '● write access: ready, not armed' : '● write access: off (runner not running)'); })(),
     (window.DEWEY_INSTALL = s.install || 'launcher', null),
+    SESSION && SESSION.login && SESSION.cookie ? h('div', { class: 'signed' }, 'signed in as ', h('b', null, SESSION.user), ' · ', h('a', { href: '#', onclick: (ev) => { ev.preventDefault(); signOut(); } }, 'sign out')) : null,
     h('div', null, 'tool v' + s.version + '  ·  web v' + String(s.web_version || '').split(' ')[0]));
   if (s.job) { pill.hidden = false; pill.replaceChildren(h('span', { class: 'spin' }), s.job.title + ' running'); } else pill.hidden = true;
 }
@@ -897,4 +904,5 @@ async function pageSettings() {
 }
 
 route();
+api('session').then((x) => { SESSION = x; drawSafety(); }).catch(() => {});
 setInterval(async () => { try { const s = await api('status'); const was = STATUS && STATUS.job; STATUS = s; drawSafety(); drawNav(parseHash().path); if (was && !s.job) { const p = parseHash().path; if (p === '') route(); else if (p === 'run') { syncRunButtons(); refreshReals(); refreshHistory(); } } } catch (e) {} }, 15000);

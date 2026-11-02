@@ -4,7 +4,7 @@ let fails = 0;
 const check = (name, ok, extra) => { console.log((ok ? 'PASS ' : 'FAIL ') + name + (!ok && extra !== undefined ? '  -> ' + String(extra).slice(0, 400) : '')); if (!ok) fails++; };
 (async () => {
   const b = await chromium.launch();
-  const ctx = await b.newContext({ bypassCSP: true, ignoreHTTPSErrors: true, httpCredentials: { username: 'tester', password: 'test-password-1234' }, viewport: { width: 1100, height: 1100 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  const ctx = await b.newContext({ bypassCSP: true, ignoreHTTPSErrors: true, extraHTTPHeaders: { Authorization: 'Basic ' + Buffer.from('tester:test-password-1234').toString('base64') }, viewport: { width: 1100, height: 1100 }, permissions: ['clipboard-read', 'clipboard-write'] });
   const p = await ctx.newPage(); p.on('pageerror', e => { console.log('PAGEERROR', e.message); fails++; });
   await p.goto('https://127.0.0.1:18443/#/dupes'); await p.waitForSelector('.group');
   const panelBtn = p.locator('.sug-panel > button');

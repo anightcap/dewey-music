@@ -145,6 +145,8 @@ services:
       MD_WEB_PASS_3: ${MD_WEB_PASS_3:-}
       MD_WEB_BIND: ${DEWEY_WEB_BIND:-127.0.0.1}
       MD_WEB_HOSTS: ${MD_WEB_HOSTS:-}
+      MD_WEB_SESSION_IDLE_MIN: ${MD_WEB_SESSION_IDLE_MIN:-30}
+      MD_WEB_SESSION_MAX_HOURS: ${MD_WEB_SESSION_MAX_HOURS:-8}
       MD_WIDGET_TOKEN: ${MD_WIDGET_TOKEN:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8099), 3).close()"]

@@ -173,3 +173,5 @@ pre.raw { font-family: var(--mono); font-size: 12px; background: #090b0f; border
 .sug-lines { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sug-group { border-top: 1px solid var(--border-bright); padding: 8px 0; }
 .sug-pick { display: block; padding: 2px 0; overflow-wrap: anywhere; cursor: pointer; }
+
+.signed { color: var(--text-dim); margin-top: 6px; } .signed b { color: var(--text); font-weight: 500; }
