@@ -39,8 +39,7 @@ Suggested rules: every group waiting for a decision gets copy-and-paste `rules.t
 |---|---|
 | ![Suggested rules panel](docs/screenshots/duplicates.png) | ![One duplicate group with its options](docs/screenshots/suggested-rules.png) |
 | ![The folder layout plan](docs/screenshots/layout.png) | ![New music waiting to be filed](docs/screenshots/new-music.png) |
-
-![The Run page](docs/screenshots/run.png)
+| ![The sign-in page](docs/screenshots/login.png) | ![The Run page](docs/screenshots/run.png) |
 
 ## Install
 

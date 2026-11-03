@@ -79,7 +79,7 @@ try:
 except ImportError:  # pragma: no cover
     mutagen = None
 
-VERSION = "1.13.0"
+VERSION = "1.14.0"
 CACHE_RV = 2   # bump when read_one() output changes meaning
 
 AUDIO_EXT = {".flac", ".mp3", ".m4a", ".mp4", ".ogg", ".oga", ".opus", ".wav",

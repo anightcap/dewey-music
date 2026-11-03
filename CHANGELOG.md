@@ -2,7 +2,9 @@
 
 Versions are the tool's (`dewey.py`) and the web console's (`webui.py`).
 
-## Unreleased (console 1.12.0)
+## 1.14.0 (tool) / 1.12.0 (console)
+
+The tool itself is unchanged; its version moves up so this release has its own tag.
 
 **Added**
 - **A proper login page** instead of the browser's grey sign-in pop-up: a password field with a show/hide button, support for password managers, wrong-password errors on the page and a lock-out countdown. Any console address opened while signed out shows it, and you land on the page you asked for after signing in. The sidebar shows who is signed in and has **sign out**.
